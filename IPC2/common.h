@@ -68,10 +68,5 @@
     } while (0)                             \
 
 
-// Be extremely careful with usage of the macro
-#define OPEN( name, flags )                 \
-    = open( name , (flags) );               \
-    if (errno)  perror("open");
-
 
 int CaptureFifo(int is_writer, int locks[3]);
