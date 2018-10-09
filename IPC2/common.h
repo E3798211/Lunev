@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 
 #define TRUE    1
@@ -23,10 +24,14 @@
 #define CAPTURE_READ_FD     1
 #define CAPTURE_WRITE_FD    2
 
+#define BUFFER_LEN          512
+
 // Names of the FIFOs
 
-#define FILE_TRANSFER       "file_transfer"
-#define CONTROL             "control_fifo"
+#define TRANSFER            "transfer"
+#define WRITER_FINISHED     "writer_finished"
+#define READER_FINISHED     "reader_finished"
+#define R2W                 "R2W"
 
 #define READER_CAPTURE      "reader_capture"
 #define READER_CAPTURE_LOCK "reader_capture_lock"
@@ -62,6 +67,11 @@
         }                                   \
     } while (0)                             \
 
+
+// Be extremely careful with usage of the macro
+#define OPEN( name, flags )                 \
+    = open( name , (flags) );               \
+    if (errno)  perror("open");
 
 
 int CaptureFifo(int is_writer, int locks[3]);
