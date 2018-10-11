@@ -27,7 +27,7 @@ int CaptureFifo(int is_writer, int locks[3])
 
 		// Step 2. Taking lock
 		errno = 0;
-		lock_fd 		 = open(LOCK,    O_RDONLY | O_NONBLOCK);
+		lock_fd          = open(LOCK,    O_RDONLY | O_NONBLOCK);
 		capture_fd_write = open(CAPTURE, O_RDWR   | O_NONBLOCK);
 		capture_fd_read  = open(CAPTURE, O_RDONLY | O_NONBLOCK);
 		if (errno)

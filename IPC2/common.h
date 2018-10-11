@@ -28,18 +28,18 @@
 
 // Names of the FIFOs
 
-#define TRANSFER            "transfer"
-#define WRITER_FINISHED     "writer_finished"
-#define READER_FINISHED     "reader_finished"
-#define R2W                 "R2W"
+#define TRANSFER            "fifos/transfer"
+#define WRITER_FINISHED     "fifos/writer_finished"
+#define READER_FINISHED     "fifos/reader_finished"
+#define R2W                 "fifos/R2W"
 
-#define READER_CAPTURE      "reader_capture"
-#define READER_CAPTURE_LOCK "reader_capture_lock"
+#define READER_CAPTURE      "fifos/reader_capture"
+#define READER_CAPTURE_LOCK "fifos/reader_capture_lock"
 
-#define WRITER_CAPTURE      "writer_capture"
-#define WRITER_CAPTURE_LOCK "writer_capture_lock"
+#define WRITER_CAPTURE      "fifos/writer_capture"
+#define WRITER_CAPTURE_LOCK "fifos/writer_capture_lock"
 
-#define MAX_NAME_LEN        "64"
+#define MAX_NAME_LEN        64
 
 
 #define CLOSE( fd )                         \

@@ -36,7 +36,7 @@ int main(int argc, char const *argv[])
 	int reader_finished = open(READER_FINISHED, O_RDONLY | O_NONBLOCK);
 	fcntl(reader_finished, F_SETFL, O_RDONLY);
 	int writer_finished = open(WRITER_FINISHED, O_WRONLY);
-	int transfer_fd 	= open(TRANSFER, O_WRONLY);
+	int transfer_fd     = open(TRANSFER, O_WRONLY);
 	
 	open(READER_CAPTURE_LOCK, O_RDONLY | O_NONBLOCK);
 
