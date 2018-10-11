@@ -40,6 +40,7 @@
 #define WRITER_CAPTURE_LOCK "fifos/writer_capture_lock"
 
 #define MAX_NAME_LEN        64
+#define MAX_SLEEP_TIME      1000000
 
 
 #define CLOSE( fd )                         \

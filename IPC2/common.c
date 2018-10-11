@@ -19,11 +19,20 @@ int CaptureFifo(int is_writer, int locks[3])
 	int lock_fd          = 0;
 	int capture_fd_write = 0;
 	int capture_fd_read  = 0;
+
+    int sleep_time = 1;
+
 	while(TRUE)
 	{
 		// Step 1. Waiting for lock released
 		while( (lock_fd = open(LOCK, O_WRONLY | O_NONBLOCK)) != -1)	
-			CLOSE(lock_fd);
+		{
+            CLOSE(lock_fd);
+            usleep(sleep_time);
+            sleep_time <<= 1;
+
+            if (sleep_time > MAX_SLEEP_TIME)    sleep_time = 1;
+        }
 
 		// Step 2. Taking lock
 		errno = 0;

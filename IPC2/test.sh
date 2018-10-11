@@ -2,7 +2,7 @@
 
 for((i = 0; i < 5000; i++))
 do
-	./writer common.c 	&
+	./writer /bin/bash 	&
 	./reader	>$i	    &
 done
 
