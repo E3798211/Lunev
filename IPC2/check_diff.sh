@@ -2,6 +2,6 @@
 
 for((i = 0; i < 5000; i++)) 
 do
-	diff -q $i /bin/bash
+	diff -q $i common.h
 	rm $i
 done
