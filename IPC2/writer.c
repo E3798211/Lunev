@@ -26,7 +26,11 @@ int main(int argc, char const *argv[])
 	}
 
 	int fds[3] = {};
-	CaptureFifo(WRITER, fds);
+    int res = CaptureFifo(WRITER, fds);
+    if (res != EXIT_SUCCESS)
+    {
+        return EXIT_FAILURE;
+    }
 
 	MKFIFO(READER_FINISHED, 0644);
 	MKFIFO(WRITER_FINISHED, 0644);
@@ -38,7 +42,8 @@ int main(int argc, char const *argv[])
 	int writer_finished = open(WRITER_FINISHED, O_WRONLY);
 	int transfer_fd     = open(TRANSFER, O_WRONLY);
 	
-	open(READER_CAPTURE_LOCK, O_RDONLY | O_NONBLOCK);
+//	open(READER_CAPTURE_LOCK, O_RDONLY | O_NONBLOCK);
+    open(READER_CAPTURE, O_RDONLY | O_NONBLOCK);
 
 	char buffer[BUFFER_LEN] = {};
 	int  bytes_read = 0;
@@ -56,3 +61,4 @@ int main(int argc, char const *argv[])
 
 	return 0;
 }
+

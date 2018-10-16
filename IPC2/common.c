@@ -12,63 +12,55 @@ int CaptureFifo(int is_writer, int locks[3])
 	#define CAPTURE \
 	( (is_writer)? WRITER_CAPTURE 	   : READER_CAPTURE )
 
-	MKFIFO(LOCK, 0644);
-	MKFIFO(CAPTURE, 0644);
 
-	// Capturing
-	int lock_fd          = 0;
-	int capture_fd_write = 0;
-	int capture_fd_read  = 0;
+    MKFIFO(LOCK, 0644);
+    MKFIFO(CAPTURE, 0644);
 
-    int sleep_time = 1;
+/*
+    // First check
+    int lock = 0;
+    if ( (lock = open(LOCK, O_WRONLY | O_NONBLOCK)) != -1 )
+    {
+        return EXIT_FAILURE;
+    }
 
-	while(TRUE)
-	{
-		// Step 1. Waiting for lock released
-		while( (lock_fd = open(LOCK, O_WRONLY | O_NONBLOCK)) != -1)	
-		{
-            CLOSE(lock_fd);
-            usleep(sleep_time);
-            sleep_time <<= 1;
+    // Taking lock
+    lock = open(LOCK, O_RDONLY | O_NONBLOCK);
+    if (lock < 0)
+    {
+        perror("lock open");
+        return EXIT_FAILURE;
+    }
+*/
 
-            if (sleep_time > MAX_SLEEP_TIME)    sleep_time = 1;
-        }
+    // Opening CAPTURE
+    int capture_fd = 0;
+    errno = 0;
+    if ( (capture_fd = open(CAPTURE, O_RDWR | O_NONBLOCK)) == -1)
+    {
+        perror("open");
+        return EXIT_FAILURE;
+    }
 
-		// Step 2. Taking lock
-		errno = 0;
-		lock_fd          = open(LOCK,    O_RDONLY | O_NONBLOCK);
-		capture_fd_write = open(CAPTURE, O_RDWR   | O_NONBLOCK);
-		capture_fd_read  = open(CAPTURE, O_RDONLY | O_NONBLOCK);
-		if (errno)
-		{
-			perror("open");
-			exit(EXIT_FAILURE);
-		}
+    // Setting fifo size
+    int new_capacity = fcntl(capture_fd, F_SETPIPE_SZ, PIPE_BUF);
+    if (new_capacity < PIPE_BUF)
+    {
+        printf("Failed to resize fifo\n");
+        exit(EXIT_FAILURE);     // Fatal error
+    }
 
-		// Step 3. Capturing
-		write(capture_fd_write, CAPTURED, CAPTURED_LEN);
-
-		// Step 4. Check
-		int  n_bytes = 0;
-		char buff[CAPTURED_LEN] = {};
-		ioctl(capture_fd_read, FIONREAD, &n_bytes);
-		if (n_bytes != CAPTURED_LEN)	// Other process is here
-		{
-			read (capture_fd_read, buff, CAPTURED_LEN);
-			CLOSE(capture_fd_read);
-			CLOSE(capture_fd_write);
-			CLOSE(lock_fd);				// MUST be last
-		}
-		else break;
-	}
-
-	// Successfully captured
-	locks[LOCK_FD] 			= lock_fd;
-	locks[CAPTURE_READ_FD] 	= capture_fd_read;
-	locks[CAPTURE_WRITE_FD]	= capture_fd_write;
+    // Capturing
+    char capture_msg[PIPE_BUF] = {};
+    int  written = 0;
+    if ( (write(capture_fd, capture_msg, PIPE_BUF)) != PIPE_BUF )
+    {
+        return EXIT_FAILURE;
+    }
 
 	#undef LOCK
 	#undef CAPTURE
+
 
 	return EXIT_SUCCESS;
 }

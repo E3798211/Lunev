@@ -3,11 +3,15 @@
 	Containes functions for both Reader and Writer.
  */
 
+#define  _GNU_SOURCE
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
+#include <unistd.h>
+#include <limits.h>
 #include <unistd.h>
 
 
@@ -17,8 +21,6 @@
 #define WRITER  1
 #define READER  0
 
-#define CAPTURED            "captured"
-#define CAPTURED_LEN        8
 
 #define LOCK_FD             0
 #define CAPTURE_READ_FD     1
@@ -31,16 +33,12 @@
 #define TRANSFER            "fifos/transfer"
 #define WRITER_FINISHED     "fifos/writer_finished"
 #define READER_FINISHED     "fifos/reader_finished"
-#define R2W                 "fifos/R2W"
 
 #define READER_CAPTURE      "fifos/reader_capture"
 #define READER_CAPTURE_LOCK "fifos/reader_capture_lock"
 
 #define WRITER_CAPTURE      "fifos/writer_capture"
 #define WRITER_CAPTURE_LOCK "fifos/writer_capture_lock"
-
-#define MAX_NAME_LEN        64
-#define MAX_SLEEP_TIME      1000000
 
 
 #define CLOSE( fd )                         \
@@ -71,3 +69,4 @@
 
 
 int CaptureFifo(int is_writer, int locks[3]);
+
