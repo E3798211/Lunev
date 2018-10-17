@@ -132,6 +132,7 @@ int  ChildAction(int child_num, int msg_queue)
     }
 
     printf("I'm child %5d, pid = %d\n", child_num, getpid());
+    fflush(stdin);
 
     // Activating next child
     msg.m_type = child_num + 1;
