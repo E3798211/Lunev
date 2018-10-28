@@ -23,10 +23,10 @@ int main(int argc, char const *argv[])
 	MKFIFO(TRANSFER, 0644);
 
 	errno = 0;
-	int writer_finished = open(WRITER_FINISHED, O_RDONLY | O_NONBLOCK);
-	fcntl(writer_finished, F_SETFL, O_RDONLY);
-	int reader_finished = open(READER_FINISHED, O_WRONLY);
-	int transfer_fd 	= open(TRANSFER, O_RDONLY);
+//	int writer_finished = open(WRITER_FINISHED, O_RDONLY | O_NONBLOCK);
+//	fcntl(writer_finished, F_SETFL, O_RDONLY);
+//	int reader_finished = open(READER_FINISHED, O_WRONLY);
+	int transfer_fd     = open(TRANSFER, O_RDONLY);
 
 //	open(WRITER_CAPTURE_LOCK, O_RDONLY | O_NONBLOCK);
 	open(WRITER_CAPTURE, O_RDONLY | O_NONBLOCK);
@@ -41,9 +41,9 @@ int main(int argc, char const *argv[])
 	close(transfer_fd);
 
 	// Signal to another end
-	char  done = 1;
-	write(reader_finished, &done, 1);
-	read (writer_finished, &done, 1);
+//	char  done = 1;
+//	write(reader_finished, &done, 1);
+//	read (writer_finished, &done, 1);
 
 	return 0;
 }
