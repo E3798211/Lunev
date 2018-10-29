@@ -59,9 +59,28 @@ int main(int argc, char const *argv[])
     }
 
 
+    getchar();
+
+    // Actually, action
+    struct sembuf sem_operations[N_SEMS] = {};
+    sem_operations[0].sem_num = 0;
+    sem_operations[0].sem_op  = 0;  // <-- wait for sem_val to become 0
+    sem_operations[0].sem_flg = SEM_UNDO;
+    
+    sem_operations[1].sem_num = 0;
+    sem_operations[1].sem_op  = 1;  
+    sem_operations[1].sem_flg = SEM_UNDO;
+
+    semop(sem_set_id, sem_operations, 2);
+
+    printf("%p\n", buffer);
+
+    sprintf(buffer, "lol");
+    printf("%s\n", buffer);
+    sprintf(buffer, "lol");
+    printf("%s\n", buffer);
 
     getchar();
-    // Actually, action
 
 
 
@@ -74,14 +93,14 @@ int main(int argc, char const *argv[])
     }
 
     // Delete semaphores
-    if ( semctl(sem_set_id, 0, IPC_RMID) != 0 && errno != EINVAL)
+    if ( semctl(sem_set_id, 0, IPC_RMID) != 0 && errno != EINVAL )
     {
         perror("semctl");
         return EXIT_FAILURE;
     }
 
     // Delete shared memory
-    if ( shmctl(shm_id, IPC_RMID, NULL)  != 0 && errno != EINVAL)
+    if ( shmctl(shm_id, IPC_RMID, NULL)  != 0 && errno != EINVAL )
     {
         perror("shmctl");
         return EXIT_FAILURE;
