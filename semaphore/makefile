@@ -21,3 +21,4 @@ common.o: src/common.c
 
 clean:
 	rm -rf *.o 
+	rm -rf src/*.o

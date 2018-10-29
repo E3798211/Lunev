@@ -11,20 +11,31 @@
 
 #include "common.h"
 
+// =========================================================
+
+/*
+    Performs the main activity
+ */
+int WriterAction(int sem_id, char* buffer, long bufsize);
+
+// =========================================================
+
 int main(int argc, char const *argv[])
 {
     // Get pagesize
     long bufsize = sysconf(_SC_PAGESIZE);
-    printf("bufsz  = %ld\n", bufsize);
-
+    
     key_t key = 0;
     GET_SYSV_KEY(key, KEY_NAME, KEY_PROJ);
-    printf("key    = %d\n", key);
-
+    
     int sem_set_id = 0;
     SEMGET(sem_set_id, key, N_SEMS, IPC_CREAT | 0666);
-    printf("set id = %d\n", sem_set_id);
 
+    if ( CaptureBuffer(sem_set_id, WRITER) != EXIT_SUCCESS )
+        return EXIT_FAILURE;
+
+    fprintf(stderr, "Writer captured\n");
+    
     int shm_id = 0;
     SHMGET(shm_id, key, bufsize, IPC_CREAT | 0666);
     printf("shm_id = %d\n", shm_id);
@@ -32,36 +43,35 @@ int main(int argc, char const *argv[])
     char* buffer = NULL;
     SHMAT(char*, buffer, shm_id, NULL, 0);
 
+    WriterAction(sem_set_id, buffer, bufsize);
 
+/*
 
-    getchar();
-    // Actually, action
+//  Calling the next function will delete all resourses. This will
+//  cause the waiting processes to fail with EIDRM.
+// 
+//  Uncomment these lines to use this function.
 
+    Leave(buffer, shm_id, sem_set_id); 
 
-
-    // Detach memory
-    errno = 0;
-    if ( shmdt(buffer) != 0 )
-    {
-        perror("shmdt");
-        return EXIT_FAILURE;
-    }
-
-    // Delete semaphores
-    if ( semctl(sem_set_id, 0, IPC_RMID) != 0 && errno != EINVAL )
-    {
-        perror("semctl");
-        return EXIT_FAILURE;
-    }
-
-    // Delete shared memory
-    if ( shmctl(shm_id, IPC_RMID, NULL)  != 0 && errno != EINVAL )
-    {
-        perror("shmctl");
-        return EXIT_FAILURE;
-    }
-
+ */
     return 0;
 }
+
+// =========================================================
+
+int WriterAction(int sem_id, char* buffer, long bufsize)
+{
+    if ( Handshake(sem_id, WRITER) != EXIT_SUCCESS )
+        return EXIT_FAILURE;
+
+    sprintf(buffer, "asdf\n");
+
+    struct sembuf op1 = { SYNCHRONIZE_SEM, UP, SEM_UNDO };
+    semop(sem_id, &op1, 1);
+
+    return EXIT_SUCCESS;
+}
+
 
 

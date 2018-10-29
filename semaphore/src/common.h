@@ -15,12 +15,27 @@
 #define KEY_NAME "/"
 #define KEY_PROJ 777
 
+#define READER   1
+#define WRITER   0
+
+enum SEM_OPS
+{
+    DOWN = -1,
+    WAIT =  0,
+    UP   =  1
+};
+
 enum SEMS
 {
     WRITER_SELF_SEM = 0,
     WRITER_OTHR_SEM = 1,
     READER_SELF_SEM = 2,
     READER_OTHR_SEM = 3,
+
+    WRITER_READY_SEM  = 4,
+    READER_READY_SEM  = 5,
+
+    SYNCHRONIZE_SEM = 6,
 
     N_SEMS
 };
@@ -60,6 +75,8 @@ enum SEMS
         if (SEM_ID == -1 && errno != EEXIST)    \
         {                                       \
             perror("semget");                   \
+            if (errno == EINVAL)                \
+                printf("Try ipcs to check if sems set exists\n"); \
             return EXIT_FAILURE;                \
         }                                       \
     }                                           \
@@ -106,9 +123,19 @@ enum SEMS
 // =========================================================
 
 /*
+    Ensure all other processes do not need buffer any more
+ */
+int CaptureBuffer(int sem_id, int caller);
+
+/*
+    Signals that caller is ready and waits for the pair
+ */
+int Handshake(int sem_id, int caller);
+
+/*
     Takes names of the resourses to be freed
  */
-int Leave(void* buffer, int sem_id, int shm_id);
+int Leave(void* buffer, int shm_id, int sem_id);
 
 
 #endif // COMMON_H_INCLUDED
