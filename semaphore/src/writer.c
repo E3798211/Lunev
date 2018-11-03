@@ -16,12 +16,27 @@
 /*
     Performs the main activity
  */
-int WriterAction(int sem_id, char* buffer, long bufsize);
+int WriterAction(int sem_id, char* buffer, long bufsize,
+                 int file_to_transfer);
 
 // =========================================================
 
 int main(int argc, char const *argv[])
 {
+    if (argc != 2)
+    {
+        printf("Expected 1 argument\n");
+        return EXIT_FAILURE;
+    }
+
+    errno = 0;
+    int file_to_transfer = open(argv[1], O_RDONLY);
+    if (errno)
+    {
+        perror("open");
+        return EXIT_FAILURE;
+    }
+
     // Get pagesize
     long bufsize = sysconf(_SC_PAGESIZE);
     
@@ -30,20 +45,18 @@ int main(int argc, char const *argv[])
     
     int sem_set_id = 0;
     SEMGET(sem_set_id, key, N_SEMS, IPC_CREAT | 0666);
-
+    
     if ( CaptureBuffer(sem_set_id, WRITER) != EXIT_SUCCESS )
         return EXIT_FAILURE;
 
-    fprintf(stderr, "Writer captured\n");
-    
     int shm_id = 0;
     SHMGET(shm_id, key, bufsize, IPC_CREAT | 0666);
-    printf("shm_id = %d\n", shm_id);
-
+    
     char* buffer = NULL;
     SHMAT(char*, buffer, shm_id, NULL, 0);
 
-    WriterAction(sem_set_id, buffer, bufsize);
+    int res = WriterAction(sem_set_id, buffer, bufsize,
+                           file_to_transfer);
 
 /*
 
@@ -55,22 +68,63 @@ int main(int argc, char const *argv[])
     Leave(buffer, shm_id, sem_set_id); 
 
  */
-    return 0;
+
+    return res;
 }
 
 // =========================================================
 
-int WriterAction(int sem_id, char* buffer, long bufsize)
+int WriterAction(int sem_id, char* buffer, long bufsize, 
+                 int file_to_transfer)
 {
     if ( Handshake(sem_id, WRITER) != EXIT_SUCCESS )
         return EXIT_FAILURE;
 
-    sprintf(buffer, "asdf\n");
+//    printf("Handshaked\n");
 
-    struct sembuf op1 = { SYNCHRONIZE_SEM, UP, SEM_UNDO };
-    semop(sem_id, &op1, 1);
+    struct sembuf sync_ops[4] = 
+    {
+        // Operations
+        { MUTEX, WAIT, 0 },
+        { MUTEX,   UP, 0 },
 
-    return EXIT_SUCCESS;
+        // Check
+        { READER_READY_SEM, DOWN, IPC_NOWAIT },
+        { READER_READY_SEM,   UP, IPC_NOWAIT },
+    };
+
+    while(1)
+    {
+        errno = 0;
+        if ( semop(sem_id, sync_ops, 1) == -1 )
+        {
+            perror("semop, waiting for write permission");
+            return EXIT_FAILURE;
+        }
+
+        int bytes_read = read(file_to_transfer, buffer, bufsize - 1);
+        buffer[bytes_read] = '\0';
+        if (bytes_read <= 0)    return EXIT_SUCCESS;
+
+        errno = 0;
+        semop(sem_id, sync_ops + 2, 2);
+        if (errno == EAGAIN)    return EXIT_FAILURE;
+        else
+        if (errno)
+        {
+            perror("semop, check failed");
+            return EXIT_FAILURE;
+        }
+
+        errno = 0;
+        if ( semop(sem_id, sync_ops + 1, 1) == -1 )
+        {
+            perror("semop, giving read permission");
+            return EXIT_FAILURE;
+        }
+    }
+
+    return EXIT_FAILURE;
 }
 
 

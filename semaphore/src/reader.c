@@ -16,7 +16,7 @@
 /*
     Performs the main activity
  */
-int ReaderAction(int sem_id, char* buffer, long bufsize);
+static int ReaderAction(int sem_id, char* buffer, long bufsize);
 
 // =========================================================
 
@@ -34,16 +34,13 @@ int main(int argc, char const *argv[])
     if ( CaptureBuffer(sem_set_id, READER) != EXIT_SUCCESS )
         return EXIT_FAILURE;
 
-    fprintf(stderr, "Reader captured\n");
-
     int shm_id = 0;
     SHMGET(shm_id, key, bufsize, IPC_CREAT | 0666);
-    printf("shm_id = %d\n", shm_id);
-
+    
     char* buffer = NULL;
     SHMAT(char*, buffer, shm_id, NULL, 0);
 
-    ReaderAction(sem_set_id, buffer, bufsize);
+    int res = ReaderAction(sem_set_id, buffer, bufsize);
 
 /*
 
@@ -56,23 +53,76 @@ int main(int argc, char const *argv[])
 
  */
 
-    return 0;
+    return res;
 }
 
 // =========================================================
 
-int ReaderAction(int sem_id, char* buffer, long bufsize)
+static int ReaderAction(int sem_id, char* buffer, long bufsize)
 {
     if ( Handshake(sem_id, READER) != EXIT_SUCCESS )
         return EXIT_FAILURE;
 
-    struct sembuf op = { SYNCHRONIZE_SEM, DOWN, SEM_UNDO };
-    semop(sem_id, &op, 1);
+// Maybe nex part is not inncocent if everuthing is correct
 
-    printf("%s", buffer);
+    union semun 
+    {
+        int              val;    
+        struct semid_ds *buf;    
+        unsigned short  *array;  
+        struct seminfo  *__buf;
+    };
 
+    union semun arg = { 0, NULL, NULL, NULL };
+    errno = 0;
+    semctl(sem_id, MUTEX, SETVAL, arg);
+    if (errno)
+    {
+        perror("semctl, failed to set MUTEX to 1");
+        return EXIT_FAILURE;
+    }
 
-    return EXIT_SUCCESS;
+    struct sembuf sync_ops[4] = 
+    {
+        // Operations
+        { MUTEX, DOWN, 0 },
+        { MUTEX,   UP, 0 },
+
+        // Check
+        { WRITER_READY_SEM, DOWN, IPC_NOWAIT },
+        { WRITER_READY_SEM,   UP, IPC_NOWAIT },
+    };
+
+    while(1)
+    {
+        errno = 0;
+        if ( semop(sem_id, sync_ops, 2) == -1 )
+        {
+            perror("semop, waiting for reading");
+            return EXIT_FAILURE;
+        }
+
+        printf("%s", buffer);
+
+        errno = 0;
+        semop(sem_id, sync_ops + 2, 2);
+        if (errno == EAGAIN)    return EXIT_SUCCESS;
+        else
+        if (errno)
+        {
+            perror("semop, check failed");
+            return EXIT_FAILURE;
+        }
+
+        errno = 0;
+        if ( semop(sem_id, sync_ops, 1) == -1 )
+        {
+            perror("semop, awakaning writer");
+            return EXIT_FAILURE;
+        }
+    }
+
+    return EXIT_FAILURE;
 }
 
 

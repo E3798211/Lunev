@@ -58,30 +58,52 @@ int main(int argc, char const *argv[])
         return EXIT_FAILURE;
     }
 
-
-    getchar();
+// =======================================================
 
     // Actually, action
-    struct sembuf sem_operations[N_SEMS] = {};
+
+    #define N_SEMS 2
+
+    struct sembuf sem_operations[N_SEMS];
     sem_operations[0].sem_num = 0;
-    sem_operations[0].sem_op  = 0;  // <-- wait for sem_val to become 0
-    sem_operations[0].sem_flg = SEM_UNDO;
+    sem_operations[0].sem_op  = 1;  // <-- wait for sem_val to become 0
+    sem_operations[0].sem_flg = 0;
     
     sem_operations[1].sem_num = 0;
-    sem_operations[1].sem_op  = 1;  
+    sem_operations[1].sem_op  = -1;  
     sem_operations[1].sem_flg = SEM_UNDO;
 
-    semop(sem_set_id, sem_operations, 2);
+    struct sembuf op;
+    op.sem_num = 0;
+    op.sem_op  = 20;
+    op.sem_flg = 0;
 
-    printf("%p\n", buffer);
+    printf("before operation\n");
+    for(int i = 0; i < N_SEMS; i++)
+        printf("%d ", semctl(sem_set_id, i, GETVAL));
+    printf("\n");
 
-    sprintf(buffer, "lol");
-    printf("%s\n", buffer);
-    sprintf(buffer, "lol");
-    printf("%s\n", buffer);
+    if ( semop(sem_set_id, sem_operations, 2) == -1 )
+    {
+        perror("semop");
+        return EXIT_FAILURE;
+    }
+
+/*
+    if ( semop(sem_set_id, &op, 1) == -1 )
+    {
+        perror("semop");
+        return EXIT_FAILURE;
+    }
+ */
+
+    printf("after operation\n");
+    for(int i = 0; i < N_SEMS; i++)
+        printf("%d ", semctl(sem_set_id, i, GETVAL));
+    printf("\n");
+
 
     getchar();
-
 
 
     // Detach memory
@@ -91,13 +113,14 @@ int main(int argc, char const *argv[])
         perror("shmdt");
         return EXIT_FAILURE;
     }
-
+/*
     // Delete semaphores
     if ( semctl(sem_set_id, 0, IPC_RMID) != 0 && errno != EINVAL )
     {
         perror("semctl");
         return EXIT_FAILURE;
     }
+ */
 
     // Delete shared memory
     if ( shmctl(shm_id, IPC_RMID, NULL)  != 0 && errno != EINVAL )

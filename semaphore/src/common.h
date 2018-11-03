@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <errno.h>
 
 #include <sys/types.h>
@@ -32,10 +33,10 @@ enum SEMS
     READER_SELF_SEM = 2,
     READER_OTHR_SEM = 3,
 
-    WRITER_READY_SEM  = 4,
-    READER_READY_SEM  = 5,
+    WRITER_READY_SEM = 4,
+    READER_READY_SEM = 5,
 
-    SYNCHRONIZE_SEM = 6,
+    MUTEX,
 
     N_SEMS
 };
@@ -137,6 +138,10 @@ int Handshake(int sem_id, int caller);
  */
 int Leave(void* buffer, int shm_id, int sem_id);
 
+/*
+    Prints values of the semaphores
+ */
+void PrintSems(int sem_id);
 
 #endif // COMMON_H_INCLUDED
 
