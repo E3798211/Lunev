@@ -80,8 +80,6 @@ int WriterAction(int sem_id, char* buffer, long bufsize,
     if ( Handshake(sem_id, WRITER) != EXIT_SUCCESS )
         return EXIT_FAILURE;
 
-//    printf("Handshaked\n");
-
     struct sembuf sync_ops[4] = 
     {
         // Operations

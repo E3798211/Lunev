@@ -32,6 +32,24 @@ int CaptureBuffer(int sem_id, int caller)
 
 int Handshake(int sem_id, int caller)
 {
+    // Cleaning MUTEX
+    union semun 
+    {
+        int              val;    
+        struct semid_ds *buf;    
+        unsigned short  *array;  
+        struct seminfo  *__buf;
+    };
+
+    union semun arg = { 0, NULL, NULL, NULL };
+    errno = 0;
+    semctl(sem_id, MUTEX, SETVAL, arg);
+    if (errno)
+    {
+        perror("semctl, failed to set MUTEX to 0");
+        return EXIT_FAILURE;
+    }
+
     struct sembuf sem_ops[4] = {};
 
     // Signal ready
@@ -105,7 +123,7 @@ int Leave(void* buffer, int shm_id, int sem_id)
 void PrintSems(int sem_id)
 {
     for(int i = 0; i < N_SEMS; i++)
-        printf("%d ", semctl(sem_id, i, GETVAL));
+        fprintf(stderr, "%d ", semctl(sem_id, i, GETVAL));
     printf("\n\n");
 }
 

@@ -63,25 +63,6 @@ static int ReaderAction(int sem_id, char* buffer, long bufsize)
     if ( Handshake(sem_id, READER) != EXIT_SUCCESS )
         return EXIT_FAILURE;
 
-// Maybe nex part is not inncocent if everuthing is correct
-
-    union semun 
-    {
-        int              val;    
-        struct semid_ds *buf;    
-        unsigned short  *array;  
-        struct seminfo  *__buf;
-    };
-
-    union semun arg = { 0, NULL, NULL, NULL };
-    errno = 0;
-    semctl(sem_id, MUTEX, SETVAL, arg);
-    if (errno)
-    {
-        perror("semctl, failed to set MUTEX to 1");
-        return EXIT_FAILURE;
-    }
-
     struct sembuf sync_ops[4] = 
     {
         // Operations

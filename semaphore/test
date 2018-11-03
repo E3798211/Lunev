@@ -1,0 +1,24 @@
+#!/bin/bash
+
+pkill reader
+pkill writer
+ipcrm -a
+
+for((i = 0; i < $1; i++))
+do
+	bin/reader >$i		&
+	bin/writer makefile	&
+done
+
+sleep 5
+
+for((i = 0; i < $1; i++))
+do
+	diff -up makefile $i
+	rm $i
+done
+
+echo readers:
+pgrep readers
+echo writers:
+pgrep writers

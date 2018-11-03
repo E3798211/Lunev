@@ -8,10 +8,12 @@
 #include <sys/shm.h>
 #include <sys/sem.h>
 
-#define KEY_NAME "/"
-#define KEY_PROJ 777
+// #define KEY_NAME "/"
+// #define KEY_PROJ 777
 
-#define N_SEMS   10
+// #define N_SEMS   7
+
+#include "common.h"
 
 
 int main(int argc, char const *argv[])
@@ -59,6 +61,12 @@ int main(int argc, char const *argv[])
     }
 
 // =======================================================
+
+    for(int i = 0; i < N_SEMS; i++)
+        printf("%d ", semctl(sem_set_id, i, GETVAL));
+    printf("\n");
+
+    return 0;
 
     // Actually, action
 
