@@ -76,12 +76,8 @@ static int ReaderAction(int sem_id, char* buffer, long bufsize)
 
     while(1)
     {
-        errno = 0;
-        if ( semop(sem_id, sync_ops, 2) == -1 )
-        {
-            perror("semop, waiting for reading");
-            return EXIT_FAILURE;
-        }
+        SEMOP(sem_id, sync_ops, 2, 
+              "semop, waiting for reading");
 
         printf("%s", buffer);
 
@@ -95,12 +91,8 @@ static int ReaderAction(int sem_id, char* buffer, long bufsize)
             return EXIT_FAILURE;
         }
 
-        errno = 0;
-        if ( semop(sem_id, sync_ops, 1) == -1 )
-        {
-            perror("semop, awakaning writer");
-            return EXIT_FAILURE;
-        }
+        SEMOP(sem_id, sync_ops, 1,
+              "semop, awakaning writer");
     }
 
     return EXIT_FAILURE;

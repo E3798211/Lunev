@@ -121,6 +121,20 @@ enum SEMS
     }                                           \
     while(0)
 
+
+#define SEMOP( SEM_ID, SOPS, NSOPS, MSG )       \
+    do                                          \
+    {                                           \
+        errno = 0;                              \
+        if ( semop((SEM_ID), (SOPS), (NSOPS)) == -1 )   \
+        {                                       \
+            perror( (MSG) );                    \
+            return EXIT_FAILURE;                \
+        }                                       \
+    }                                           \
+    while(0)
+
+
 // =========================================================
 
 /*

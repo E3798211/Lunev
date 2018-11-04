@@ -93,12 +93,9 @@ int WriterAction(int sem_id, char* buffer, long bufsize,
 
     while(1)
     {
-        errno = 0;
-        if ( semop(sem_id, sync_ops, 1) == -1 )
-        {
-            perror("semop, waiting for write permission");
-            return EXIT_FAILURE;
-        }
+
+        SEMOP(sem_id, sync_ops, 1,
+              "semop, waiting for write permission");
 
         int bytes_read = read(file_to_transfer, buffer, bufsize - 1);
         buffer[bytes_read] = '\0';
@@ -114,12 +111,8 @@ int WriterAction(int sem_id, char* buffer, long bufsize,
             return EXIT_FAILURE;
         }
 
-        errno = 0;
-        if ( semop(sem_id, sync_ops + 1, 1) == -1 )
-        {
-            perror("semop, giving read permission");
-            return EXIT_FAILURE;
-        }
+        SEMOP(sem_id, sync_ops + 1, 1,
+              "semop, giving read permission");
     }
 
     return EXIT_FAILURE;

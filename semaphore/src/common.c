@@ -20,12 +20,8 @@ int CaptureBuffer(int sem_id, int caller)
     sem_ops[2].sem_op  = WAIT;
     sem_ops[2].sem_flg = SEM_UNDO;
 
-    errno = 0;
-    if ( semop(sem_id, sem_ops, 3) == -1 )
-    {
-        perror("semop, capture");
-        return EXIT_FAILURE;
-    }
+    SEMOP(sem_id, sem_ops, 3,
+          "semop, capture");
 
     return EXIT_SUCCESS;
 }
@@ -68,11 +64,8 @@ int Handshake(int sem_id, int caller)
     sem_ops[0].sem_op  = UP + UP;
     sem_ops[0].sem_flg = SEM_UNDO;
 
-    if ( semop(sem_id, sem_ops, 1) == -1 )
-    {
-        perror("semop, ready");
-        return EXIT_FAILURE;
-    }
+    SEMOP(sem_id, sem_ops, 1,
+          "semop, handshake ready");
 
     // Waiting for the pair
     sem_ops[0].sem_num = ( (caller)? WRITER_READY_SEM : READER_READY_SEM );
@@ -100,11 +93,8 @@ int Handshake(int sem_id, int caller)
     sem_ops[3].sem_op  = DOWN;
     sem_ops[3].sem_flg = ( (caller)? 0 : SEM_UNDO );
 
-    if ( semop(sem_id, sem_ops, 4) == -1 )
-    {
-        perror("semop, waiting");
-        return EXIT_FAILURE;
-    }
+    SEMOP(sem_id, sem_ops, 4,
+          "semop, handshake waiting");
 
     return EXIT_SUCCESS;
 }
