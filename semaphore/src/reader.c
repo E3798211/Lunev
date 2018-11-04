@@ -22,7 +22,9 @@ static int ReaderAction(int sem_id, char* buffer, long bufsize);
 
 int main(int argc, char const *argv[])
 {
-    // Get pagesize
+
+    printf("Hello2\n");
+
     long bufsize = sysconf(_SC_PAGESIZE);
 
     key_t key = 0;
@@ -81,6 +83,7 @@ static int ReaderAction(int sem_id, char* buffer, long bufsize)
 
         printf("%s", buffer);
 
+        // Checking if opponent is alive
         errno = 0;
         semop(sem_id, sync_ops + 2, 2);
         if (errno == EAGAIN)    return EXIT_SUCCESS;

@@ -16,7 +16,7 @@
 /*
     Performs the main activity
  */
-int WriterAction(int sem_id, char* buffer, long bufsize,
+static int WriterAction(int sem_id, char* buffer, long bufsize,
                  int file_to_transfer);
 
 // =========================================================
@@ -37,7 +37,6 @@ int main(int argc, char const *argv[])
         return EXIT_FAILURE;
     }
 
-    // Get pagesize
     long bufsize = sysconf(_SC_PAGESIZE);
     
     key_t key = 0;
@@ -74,7 +73,7 @@ int main(int argc, char const *argv[])
 
 // =========================================================
 
-int WriterAction(int sem_id, char* buffer, long bufsize, 
+static int WriterAction(int sem_id, char* buffer, long bufsize, 
                  int file_to_transfer)
 {
     if ( Handshake(sem_id, WRITER) != EXIT_SUCCESS )
@@ -101,6 +100,7 @@ int WriterAction(int sem_id, char* buffer, long bufsize,
         buffer[bytes_read] = '\0';
         if (bytes_read <= 0)    return EXIT_SUCCESS;
 
+        // Checking if opponent is alive
         errno = 0;
         semop(sem_id, sync_ops + 2, 2);
         if (errno == EAGAIN)    return EXIT_FAILURE;

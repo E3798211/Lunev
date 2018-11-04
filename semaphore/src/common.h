@@ -68,7 +68,7 @@ enum SEMS
     SEM_ID MUST be an existing variable. 
     Iw will be assigned in macro.
  */
-#define SEMGET( SEM_ID, SYSV_KEY, N_SEMS, FLAGS )   \
+#define SEMGET( SEM_ID, SYSV_KEY, N_SEMS, FLAGS ) \
     do                                          \
     {                                           \
         errno = 0;                              \
@@ -93,7 +93,7 @@ enum SEMS
     do                                          \
     {                                           \
         errno = 0;                              \
-        SHM_ID = shmget((SYSV_KEY), (SIZE), (FLAGS));   \
+        SHM_ID = shmget((SYSV_KEY), (SIZE), (FLAGS)); \
         if (SHM_ID == -1 && errno != EEXIST)    \
         {                                       \
             perror("shmget");                   \
@@ -112,7 +112,7 @@ enum SEMS
     do                                          \
     {                                           \
         errno = 0;                              \
-        BUFFER = (BUF_TYPE)shmat((SHM_ID), (ADDR), (FLAGS));    \
+        BUFFER = (BUF_TYPE)shmat((SHM_ID), (ADDR), (FLAGS)); \
         if (BUFFER == (BUF_TYPE)-1)             \
         {                                       \
             perror("shmat");                    \
@@ -126,7 +126,7 @@ enum SEMS
     do                                          \
     {                                           \
         errno = 0;                              \
-        if ( semop((SEM_ID), (SOPS), (NSOPS)) == -1 )   \
+        if ( semop((SEM_ID), (SOPS), (NSOPS)) == -1 ) \
         {                                       \
             perror( (MSG) );                    \
             return EXIT_FAILURE;                \
