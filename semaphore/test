@@ -7,15 +7,16 @@ ipcrm -a
 for((i = 0; i < $1; i++))
 do
 	bin/reader >$i		&
-	bin/writer makefile	&
+	bin/writer  /bin/bash		&
 done
 
-sleep 5
+# waiting for all children processes
+wait
 
 for((i = 0; i < $1; i++))
 do
-	diff -up makefile $i
-	rm $i
+	diff -up /bin/bash $i
+#	rm $i
 done
 
 echo readers:

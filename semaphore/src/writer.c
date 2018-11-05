@@ -17,7 +17,7 @@
     Performs the main activity
  */
 static int WriterAction(int sem_id, char* buffer, long bufsize,
-                 int file_to_transfer);
+                        int file_to_transfer);
 
 // =========================================================
 
@@ -57,24 +57,13 @@ int main(int argc, char const *argv[])
     int res = WriterAction(sem_set_id, buffer, bufsize,
                            file_to_transfer);
 
-/*
-
-//  Calling the next function will delete all resourses. This will
-//  cause the waiting processes to fail with EIDRM.
-// 
-//  Uncomment these lines to use this function.
-
-    Leave(buffer, shm_id, sem_set_id); 
-
- */
-
     return res;
 }
 
 // =========================================================
 
 static int WriterAction(int sem_id, char* buffer, long bufsize, 
-                 int file_to_transfer)
+                        int file_to_transfer)
 {
     if ( Handshake(sem_id, WRITER) != EXIT_SUCCESS )
         return EXIT_FAILURE;
@@ -96,9 +85,10 @@ static int WriterAction(int sem_id, char* buffer, long bufsize,
         SEMOP(sem_id, sync_ops, 1,
               "semop, waiting for write permission");
 
-        int bytes_read = read(file_to_transfer, buffer, bufsize - 1);
-        buffer[bytes_read] = '\0';
-        if (bytes_read <= 0)    return EXIT_SUCCESS;
+        int n_bytes = read(file_to_transfer, buffer + sizeof(size_t), 
+                           bufsize - sizeof(size_t));
+        ((size_t*)buffer)[0] = (size_t)n_bytes;
+        if (n_bytes <= 0)       return EXIT_SUCCESS;
 
         // Checking if opponent is alive
         errno = 0;

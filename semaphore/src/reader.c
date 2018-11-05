@@ -22,9 +22,6 @@ static int ReaderAction(int sem_id, char* buffer, long bufsize);
 
 int main(int argc, char const *argv[])
 {
-
-    printf("Hello2\n");
-
     long bufsize = sysconf(_SC_PAGESIZE);
 
     key_t key = 0;
@@ -79,9 +76,10 @@ static int ReaderAction(int sem_id, char* buffer, long bufsize)
     while(1)
     {
         SEMOP(sem_id, sync_ops, 2, 
-              "semop, waiting for reading");
+              "semop, waiting for read permission");
 
-        printf("%s", buffer);
+        size_t n_bytes = ((size_t*)buffer)[0];
+        write(STDOUT_FILENO, buffer + sizeof(size_t), n_bytes);
 
         // Checking if opponent is alive
         errno = 0;
@@ -95,7 +93,7 @@ static int ReaderAction(int sem_id, char* buffer, long bufsize)
         }
 
         SEMOP(sem_id, sync_ops, 1,
-              "semop, awakaning writer");
+              "semop, giving write permission");
     }
 
     return EXIT_FAILURE;
