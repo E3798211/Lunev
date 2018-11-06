@@ -1,2 +1,6 @@
 a.out
 bin/
+LOCAL_EXT4/
+localfs
+testwriter.c
+
