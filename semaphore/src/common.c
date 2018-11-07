@@ -20,6 +20,9 @@ int CaptureBuffer(int sem_id, int caller)
     sem_ops[2].sem_op  = WAIT;
     sem_ops[2].sem_flg = SEM_UNDO;
 
+/*
+    Entering critical section #1
+ */
     SEMOP(sem_id, sem_ops, 3,
           "semop, capture");
 

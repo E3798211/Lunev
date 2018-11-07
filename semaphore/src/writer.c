@@ -45,6 +45,9 @@ int main(int argc, char const *argv[])
     int sem_set_id = 0;
     SEMGET(sem_set_id, key, N_SEMS, IPC_CREAT | 0666);
     
+/*
+    Process enters critical section #1 in CaptureBuffer()
+ */
     if ( CaptureBuffer(sem_set_id, WRITER) != EXIT_SUCCESS )
         return EXIT_FAILURE;
 
@@ -57,6 +60,9 @@ int main(int argc, char const *argv[])
     int res = WriterAction(sem_set_id, buffer, bufsize,
                            file_to_transfer);
 
+/*
+    End of the critical section #1
+ */
     return res;
 }
 
@@ -81,7 +87,9 @@ static int WriterAction(int sem_id, char* buffer, long bufsize,
 
     while(1)
     {
-
+        /*
+            Entering critical section #2
+         */
         SEMOP(sem_id, sync_ops, 1,
               "semop, waiting for write permission");
 
@@ -101,6 +109,9 @@ static int WriterAction(int sem_id, char* buffer, long bufsize,
             return EXIT_FAILURE;
         }
 
+        /*
+            Leaving critical section #2
+         */
         SEMOP(sem_id, sync_ops + 1, 1,
               "semop, giving read permission");
     }
