@@ -76,13 +76,13 @@ static int WriterAction(int sem_id, char* buffer, long bufsize,
 
     struct sembuf sync_ops[4] = 
     {
-        // Operations
-        { MUTEX, WAIT, 0 },
-        { MUTEX,   UP, 0 },
-
         // Check
         { READER_READY_SEM, DOWN, IPC_NOWAIT },
         { READER_READY_SEM,   UP, IPC_NOWAIT },
+
+        // Operations
+        { MUTEX, WAIT, 0 },
+        { MUTEX,   UP, 0 },
     };
 
     while(1)
@@ -90,29 +90,25 @@ static int WriterAction(int sem_id, char* buffer, long bufsize,
         /*
             Entering critical section #2
          */
-        SEMOP(sem_id, sync_ops, 1,
-              "semop, waiting for write permission");
+        errno = 0;
+        semop(sem_id, sync_ops, 3);
+        if (errno == EAGAIN)    return EXIT_FAILURE;
+        else
+        if (errno)
+        {
+            perror("semop, waiting for write permission failed");
+            return EXIT_FAILURE;
+        }
 
         int n_bytes = read(file_to_transfer, buffer + sizeof(size_t), 
                            bufsize - sizeof(size_t));
         ((size_t*)buffer)[0] = (size_t)n_bytes;
         if (n_bytes <= 0)       return EXIT_SUCCESS;
 
-        // Checking if opponent is alive
-        errno = 0;
-        semop(sem_id, sync_ops + 2, 2);
-        if (errno == EAGAIN)    return EXIT_FAILURE;
-        else
-        if (errno)
-        {
-            perror("semop, check failed");
-            return EXIT_FAILURE;
-        }
-
         /*
             Leaving critical section #2
          */
-        SEMOP(sem_id, sync_ops + 1, 1,
+        SEMOP(sem_id, sync_ops + 3, 1,
               "semop, giving read permission");
     }
 

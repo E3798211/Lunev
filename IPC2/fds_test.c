@@ -15,7 +15,13 @@
 #define FALSE 0
 
 /*
-	Pair "inode + filesystem_id" determines file uniquely. 
+	According to "man statfs", pair "inode + filesystem_id" 
+	determines file uniquely:
+	"
+		The general idea is that f_fsid contains some random 
+		stuff such  that the  pair (f_fsid,ino) uniquely 
+		determines a file.
+    "
 
 	open(), close(), read(), write(), link(), unlink()
 	operations on a file descriptor do not change its inode.
@@ -30,9 +36,9 @@
 	in different fs)
 
 	2. rename() crosses boundaries of the current fs. In this case
-	unlink() is called and we treat files as different as writing
-	and reading from those file decriptors will write and read 
-	different blocks on a disk. 
+	like unlink() is called and we treat files as different as 
+	writing and reading from those file decriptors will write and 
+	read different blocks on a disk. 
  */
 int TestFDs(int fd1, int fd2);
 

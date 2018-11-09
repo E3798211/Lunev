@@ -62,11 +62,12 @@ int main(int argc, char const *argv[])
 
 // =======================================================
 
+//    printf("here\n");
     for(int i = 0; i < N_SEMS; i++)
         printf("%d ", semctl(sem_set_id, i, GETVAL));
     printf("\n");
 
-    return 0;
+//    return 0;
 
     // Actually, action
 
@@ -74,12 +75,12 @@ int main(int argc, char const *argv[])
 
     struct sembuf sem_operations[N_SEMS];
     sem_operations[0].sem_num = 0;
-    sem_operations[0].sem_op  = 1;  // <-- wait for sem_val to become 0
-    sem_operations[0].sem_flg = 0;
+    sem_operations[0].sem_op  = -5;
+    sem_operations[0].sem_flg = IPC_NOWAIT;
     
     sem_operations[1].sem_num = 0;
     sem_operations[1].sem_op  = -1;  
-    sem_operations[1].sem_flg = SEM_UNDO;
+    sem_operations[1].sem_flg = 0;
 
     struct sembuf op;
     op.sem_num = 0;
