@@ -1,6 +1,4 @@
 
-// #include "common.h"
-
 #include "reader.h"
 #include "writer.h"
 
@@ -8,63 +6,18 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+// =========================================================
+
 int SIG_LAST_NUM = 0;
 
-void go(int signum)
-{
-    printf("hello\n");
-    getchar();
-}
+// =========================================================
 
 int main(int argc, char const *argv[])
 {
-
-
-/*
+ /*
     https://www.gnu.org/software/libc/manual/html_node/Sigsuspend.html
  */
-
-
-
-    /*
-        1. Set signal mask
-        2. 
-        3. 
-        4. 
-
-        Last: fork()    <- Child and parent already receive signal
-        if any one of them dies.
-     */
-
-
-//    sigset_t sig_communication_set = {};
-
-//    SIGEMPTYSET(&sig_communication_set);
-
-//    SIGADDSET  (&sig_communication_set, SIGUSR1);
-//    SIGADDSET  (&sig_communication_set, SIGUSR2);
-
-//    SIGADDSET(&sig_communication_set, SIGINT);
-//    SIGADDSET(&sig_communication_set, SIGINT);
-/*
-    if ( sigprocmask() == -1 )
-    {
-        perror("sigprocmask() failed:");
-        return EXIT_FAILURE;
-    }
- */
-
-//    struct sigaction new_sigaction = {};
-//    new_sigaction.sa_handler = Handler;
-
-//    sigaction(SIGINT, &new_sigaction, NULL);
-
-//    sigset_t sig_default_set = {};
-//    sigprocmask(SIG_BLOCK, &sig_communication_set, &sig_default_set);
-//    printf("try ctrl+C\n");
-//    getchar();
-//    sigsuspend(&sig_default_set);
-//    sigsuspend(&sig_communication_set);
+    // =========================================================
 
     if (argc != 2)
     {
@@ -96,20 +49,6 @@ int main(int argc, char const *argv[])
     SIGADDSET(&sig_communication_set, SIGUSR1);
     SIGADDSET(&sig_communication_set, SIGUSR2);
     SIGPROCMASK(SIG_BLOCK, &sig_communication_set, &sig_default_set);
-
-
-
-
-
-
-    act.sa_handler = go;
-    act.sa_flags   = 0;
-    SIGACTION(SIGINT, &act, NULL);
-
-    sigsuspend(&sig_default_set);
-
-
-
 
     errno = 0;
     pid_t child_pid = fork();

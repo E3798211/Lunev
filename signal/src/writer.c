@@ -1,12 +1,65 @@
 
 #include "writer.h"
 
-static void go(int signum)
-{
-    printf("hi\n");
-    SIG_LAST_NUM = signum;
+// =========================================================
 
+static char BUFFER[BUFSIZE] = {};
+static int  cur_byte        =  0;
+
+// =========================================================
+
+static void Sig1Handler(int signum)
+{
+//    printf("Sig1Handler\n");
+    SIG_LAST_NUM = signum;
+//    printf("%d\n", SIG_LAST_NUM);
 }
+
+static void Sig2Handler(int signum)
+{
+//    printf("Sig2Handler\n");
+    SIG_LAST_NUM = signum;
+//    printf("%d\n", SIG_LAST_NUM);
+}
+
+// =========================================================
+
+static int SendByte(pid_t reader)
+{
+    SIG_LAST_NUM = 0;
+
+    sigset_t sig_default_set = {};
+    SIGEMPTYSET(&sig_default_set);
+
+/*
+    for(int i = 0; i < 8; i++)
+        printf("%d", (BUFFER[cur_byte] & (1 << i)) != 0 );
+    printf("\n");
+ */
+    for(int i = 0; i < 8; i++)
+    {
+        // Sending bit
+        if ( (BUFFER[cur_byte] & (1 << i)) == 0 )
+        {
+            KILL(reader, SIGUSR1);
+            // printf("11\n");
+        }
+        else
+        {
+            printf("22\n");
+            fflush(stdout);
+            KILL(reader, SIGUSR2);
+        }
+
+        // Waiting for write permission
+        while(SIG_LAST_NUM != SIGUSR2)
+            sigsuspend(&sig_default_set);
+    }
+
+    return EXIT_SUCCESS;
+}
+
+// =========================================================
 
 int Writer(pid_t reader, char const* filename)
 {
@@ -20,8 +73,13 @@ int Writer(pid_t reader, char const* filename)
         return EXIT_FAILURE;
     }
 
-    // Dying when parent is dead
-    prctl(PR_SET_PDEATHSIG, SIGKILL);
+    // Dying if parent is dead
+    errno = 0;
+    if ( prctl(PR_SET_PDEATHSIG, SIGKILL) == -1 )
+    {
+        perror("prctl() failed");
+        return EXIT_FAILURE;
+    }
     /*
         Parent could become dead before signal is set. So after
         signal is set, checking if parent is still alive.
@@ -31,22 +89,35 @@ int Writer(pid_t reader, char const* filename)
      */
     if (getppid() != reader)        return EXIT_FAILURE;
 
-    // Waiting for parent is ready
     struct sigaction act = {};
-    act.sa_handler = go;
+    act.sa_handler = Sig1Handler;
     SIGACTION(SIGUSR1, &act, NULL);
+    act.sa_handler = Sig2Handler;
+    SIGACTION(SIGUSR2, &act, NULL);
 
     sigset_t sig_default_set = {};
     SIGEMPTYSET(&sig_default_set);
 
+    // Waiting for parent is ready
     while(SIG_LAST_NUM != SIGUSR1)
         sigsuspend(&sig_default_set);
 
     // If we are here, file can be transmitted
     printf("HELL YEAH\n");
     
-    
+    int bytes = 0;
+    while( (bytes = read(file_to_transfer, BUFFER, BUFSIZE)) > 0 )
+        for(cur_byte = 0; cur_byte < bytes; cur_byte++)
+            if (SendByte(reader))   return EXIT_FAILURE;
 
+    // SIGNAL END
+    KILL(reader, SIGURG);
+
+    /*
+        Reader receives all the bytes, prints and qiuts ->
+        writer receives SIGKILL
+     */
+    pause();
 
     return EXIT_SUCCESS; 
 }

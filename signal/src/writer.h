@@ -2,6 +2,8 @@
 # ifndef WRITER_H_INCLUDED
 # define WRITER_H_INCLUDED
 
+// =========================================================
+
 #include "common.h"
 
 /*
@@ -10,5 +12,7 @@
     Child.
  */
 int Writer(pid_t reader, char const* filename);
+
+// =========================================================
 
 # endif // WRITER_H_INCLUDED

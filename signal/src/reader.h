@@ -4,6 +4,8 @@
 
 #include "common.h"
 
+// =========================================================
+
 /*
     Receives text from writer and prints it to the stdout.
 
@@ -11,5 +13,6 @@
  */
 int Reader(pid_t writer);
 
+// =========================================================
 
 # endif // READER_H_INCLUDED

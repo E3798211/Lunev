@@ -23,6 +23,8 @@
 
 extern int SIG_LAST_NUM;
 
+#define BUFSIZE 4096
+
 // =========================================================
 
 #define SIGEMPTYSET( SET )                                  \
@@ -62,28 +64,40 @@ extern int SIG_LAST_NUM;
     while(0)
 
 #define SIGACTION( SIGNUM, ACT, OLDACT )                    \
-        do                                                  \
+    do                                                      \
+    {                                                       \
+        errno = 0;                                          \
+        if (sigaction((SIGNUM), (ACT), (OLDACT)))           \
         {                                                   \
-            errno = 0;                                      \
-            if (sigaction((SIGNUM), (ACT), (OLDACT)))       \
-            {                                               \
-                perror("sigaction() failed");               \
-                return EXIT_FAILURE;                        \
-            }                                               \
+            perror("sigaction() failed");                   \
+            return EXIT_FAILURE;                            \
         }                                                   \
-        while(0)
+    }                                                       \
+    while(0)
 
 #define SIGPROCMASK( HOW, SET, OLDSET )                     \
-        do                                                  \
+    do                                                      \
+    {                                                       \
+        errno = 0;                                          \
+        if (sigprocmask((HOW), (SET), (OLDSET)))            \
         {                                                   \
-            errno = 0;                                      \
-            if (sigprocmask((HOW), (SET), (OLDSET)))        \
-            {                                               \
-                perror("sigprocmask() failed");             \
-                return EXIT_FAILURE;                        \
-            }                                               \
+            perror("sigprocmask() failed");                 \
+            return EXIT_FAILURE;                            \
         }                                                   \
-        while(0)
+    }                                                       \
+    while(0)
+
+#define KILL( PID, SIG )                                    \
+    do                                                      \
+    {                                                       \
+        errno = 0;                                          \
+        if ( kill((PID), (SIG)) == -1)                      \
+        {                                                   \
+            perror("kill() failed");                        \
+            return EXIT_FAILURE;                            \
+        }                                                   \
+    }                                                       \
+    while(0)
 
 
 // =========================================================
