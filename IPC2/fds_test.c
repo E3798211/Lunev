@@ -56,7 +56,7 @@ int main(int argc, char const *argv[])
 		perror("open(), fd1");
 		return EXIT_FAILURE;
 	}
-	int fd2 = open(argv[2], O_RDWR);
+	int fd2 = open(argv[1], O_RDWR);
 	if (fd2 == -1)
 	{
 		perror("open(), fd2");

@@ -81,10 +81,10 @@ static int ReaderAction(int sem_id, char* buffer, long bufsize)
 
     while(1)
     {
+        errno = 0;
         /*
             Entering critical section #2
          */
-        errno = 0;
         semop(sem_id, sync_ops, 4);
         if (errno == EAGAIN)    return EXIT_FAILURE;
         else
