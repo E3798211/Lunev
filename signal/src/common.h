@@ -102,4 +102,11 @@ extern int SIG_LAST_NUM;
 
 // =========================================================
 
+/*
+    Performs all action for handling signals.
+ */
+void SigHandler(int signum);
+
+// =========================================================
+
 # endif // COMMON_H_INCLUDED

@@ -8,22 +8,6 @@ static int  cur_byte        =  0;
 
 // =========================================================
 
-static void Sig1Handler(int signum)
-{
-//    printf("Sig1Handler\n");
-    SIG_LAST_NUM = signum;
-//    printf("%d\n", SIG_LAST_NUM);
-}
-
-static void Sig2Handler(int signum)
-{
-//    printf("Sig2Handler\n");
-    SIG_LAST_NUM = signum;
-//    printf("%d\n", SIG_LAST_NUM);
-}
-
-// =========================================================
-
 static int SendByte(pid_t reader)
 {
 
@@ -33,10 +17,11 @@ static int SendByte(pid_t reader)
     for(int i = 0; i < 8; i++)
     {
         SIG_LAST_NUM = 0;
+
         // Sending bit
         if ( (BUFFER[cur_byte] & (1 << i)) == 0 )
             KILL(reader, SIGUSR1);
-        else
+        else 
             KILL(reader, SIGUSR2);
 
         // Waiting for write permission
@@ -53,8 +38,8 @@ int Writer(pid_t reader, char const* filename)
 {
     // Child
 
-    int file_to_transfer = open(filename, O_RDONLY);
     errno = 0;
+    int file_to_transfer = open(filename, O_RDONLY);
     if (file_to_transfer == -1)
     {
         perror("open() failed");
@@ -77,31 +62,18 @@ int Writer(pid_t reader, char const* filename)
      */
     if (getppid() != reader)        return EXIT_FAILURE;
 
-    struct sigaction act = {};
-    act.sa_handler = Sig1Handler;
-    SIGACTION(SIGUSR1, &act, NULL);
-    act.sa_handler = Sig2Handler;
-    SIGACTION(SIGUSR2, &act, NULL);
-
-    sigset_t sig_default_set = {};
-    SIGEMPTYSET(&sig_default_set);
-
-    // Waiting for parent is ready
-    while(SIG_LAST_NUM != SIGUSR1)
-        sigsuspend(&sig_default_set);
-
     // If we are here, file can be transmitted
     int bytes = 0;
     while( (bytes = read(file_to_transfer, BUFFER, BUFSIZE)) > 0 )
         for(cur_byte = 0; cur_byte < bytes; cur_byte++)
             if (SendByte(reader))   return EXIT_FAILURE;
 
-    // SIGNAL END
+    // Signal about end of transition
     KILL(reader, SIGURG);
 
     /*
         Reader receives all the bytes, prints and qiuts ->
-        writer receives SIGKILL
+        writer receives SIGKILL anyway.
      */
     pause();
 
