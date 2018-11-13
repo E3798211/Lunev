@@ -91,8 +91,6 @@ int Writer(pid_t reader, char const* filename)
         sigsuspend(&sig_default_set);
 
     // If we are here, file can be transmitted
-    printf("HELL YEAH\n");
-    
     int bytes = 0;
     while( (bytes = read(file_to_transfer, BUFFER, BUFSIZE)) > 0 )
         for(cur_byte = 0; cur_byte < bytes; cur_byte++)

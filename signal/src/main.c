@@ -43,12 +43,11 @@ int main(int argc, char const *argv[])
      */
     sigset_t sig_communication_set = {};
     SIGEMPTYSET(&sig_communication_set);
-    sigset_t sig_default_set       = {};
-    SIGEMPTYSET(&sig_default_set);
     
     SIGADDSET(&sig_communication_set, SIGUSR1);
     SIGADDSET(&sig_communication_set, SIGUSR2);
-    SIGPROCMASK(SIG_BLOCK, &sig_communication_set, &sig_default_set);
+    SIGADDSET(&sig_communication_set, SIGURG );
+    SIGPROCMASK(SIG_BLOCK, &sig_communication_set, NULL);
 
     errno = 0;
     pid_t child_pid = fork();
