@@ -45,7 +45,7 @@ static int ReceiveByte(pid_t writer)
             BUFFER[cur_byte] |= (1 << i);
         else
         if (SIG_LAST_NUM == SIGUSR1)
-            BUFFER[cur_byte] |= (0 << i);
+            BUFFER[cur_byte] &= ~(1 << i);
         else
             return EXIT_FAILURE;
 
@@ -78,8 +78,10 @@ int Reader(pid_t writer)
     {
         if (cur_byte == BUFSIZE - 1)
         {
-            write(STDOUT_FILENO, BUFFER, cur_byte);
+            write(STDOUT_FILENO, BUFFER, BUFSIZE);
             cur_byte = 0;
+            for(int i = 0; i < cur_byte; i++)
+                BUFFER[i] = 0;
         }
         else
             cur_byte++;
