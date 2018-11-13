@@ -26,30 +26,18 @@ static void Sig2Handler(int signum)
 
 static int SendByte(pid_t reader)
 {
-    SIG_LAST_NUM = 0;
 
     sigset_t sig_default_set = {};
     SIGEMPTYSET(&sig_default_set);
 
-/*
-    for(int i = 0; i < 8; i++)
-        printf("%d", (BUFFER[cur_byte] & (1 << i)) != 0 );
-    printf("\n");
- */
     for(int i = 0; i < 8; i++)
     {
+        SIG_LAST_NUM = 0;
         // Sending bit
         if ( (BUFFER[cur_byte] & (1 << i)) == 0 )
-        {
             KILL(reader, SIGUSR1);
-            // printf("11\n");
-        }
         else
-        {
-            printf("22\n");
-            fflush(stdout);
             KILL(reader, SIGUSR2);
-        }
 
         // Waiting for write permission
         while(SIG_LAST_NUM != SIGUSR2)
