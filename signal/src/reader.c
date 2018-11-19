@@ -21,6 +21,9 @@ static int ReceiveByte(pid_t writer)
         while(SIG_LAST_NUM != SIGUSR1 &&
               SIG_LAST_NUM != SIGUSR2 &&
               SIG_LAST_NUM != SIGURG )
+            /*
+                Critical section started
+             */
             sigsuspend(&sig_default_set);
 
         if (SIG_LAST_NUM == SIGUSR2)
@@ -45,6 +48,9 @@ int Reader(pid_t writer)
 {
     // Parent
 
+    /*
+        Critical section started in ReceiveByte()
+     */
     while(!ReceiveByte(writer))
     {
         if (cur_byte == BUFSIZE - 1)
@@ -55,6 +61,9 @@ int Reader(pid_t writer)
         else
             cur_byte++;
 
+        /*
+            Critical section finished
+         */
         KILL(writer, SIGUSR2);
     }
 

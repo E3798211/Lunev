@@ -19,6 +19,9 @@ static int SendByte(pid_t reader)
         SIG_LAST_NUM = 0;
 
         // Sending bit
+        /*
+            Critical section starts with KILL
+         */
         if ( (BUFFER[cur_byte] & (1 << i)) == 0 )
             KILL(reader, SIGUSR1);
         else 
@@ -26,6 +29,9 @@ static int SendByte(pid_t reader)
 
         // Waiting for write permission
         while(SIG_LAST_NUM != SIGUSR2)
+            /*
+                Critical section finished after sigsuspend()
+             */
             sigsuspend(&sig_default_set);
     }
 
@@ -66,6 +72,9 @@ int Writer(pid_t reader, char const* filename)
     int bytes = 0;
     while( (bytes = read(file_to_transfer, BUFFER, BUFSIZE)) > 0 )
         for(cur_byte = 0; cur_byte < bytes; cur_byte++)
+            /*
+                Critical section started in SendByte()
+             */
             if (SendByte(reader))   return EXIT_FAILURE;
 
     // Signal about end of transition
