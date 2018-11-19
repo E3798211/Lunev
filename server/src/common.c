@@ -34,7 +34,7 @@ long GetPositiveValue(char const* str)
 {
     if (!str)
         return -1;
-    
+
     char* endptr = NULL;
 
     errno = 0;
@@ -58,4 +58,20 @@ long GetPositiveValue(char const* str)
 
     return value;
 }
+
+int FindMaxFd(struct Connection* connections,
+              int n_processes)
+{
+    if (!connections)   return EXIT_FAILURE;
+
+    int max = 0;
+    for(int i = 0; i < n_processes; i++)
+    {
+        max = MAX(max, connections[i].fds[0]);
+        max = MAX(max, connections[i].fds[1]);
+    }
+
+    return max;
+}
+
 

@@ -104,13 +104,51 @@ QUIT:
 
 int ChildAction(int fds[2])
 {
-    return EXIT_FAILURE;
+    char buffer[STD_BUFSIZE] = {};
+
+    int bytes_read = 0;
+    while( (bytes_read = read(fds[0], buffer, STD_BUFSIZE)) > 0 )
+    {
+        // Sending all the data that has been read
+        int bytes_written = 0;
+        while(bytes_written < bytes_read)
+        {
+            errno = 0;
+            int bytes = write(fds[1], buffer + bytes_written, 
+                              bytes_read - bytes_written);
+            if (bytes == -1)
+            {
+                perror("write() failed");
+                return EXIT_FAILURE;
+            }
+
+            bytes_written += bytes;
+        }
+
+    }
+    return EXIT_SUCCESS;
 }
 
 int ParentAction(struct Connection* connections,
                  int n_processes)
 {
     if (!connections)   return EXIT_FAILURE;
+
+    int nfds = FindMaxFd(connections, n_processes) + 1;
+
+    fd_set read_fds;
+    FD_ZERO(&read_fds);
+    fd_set write_fds;
+    FD_ZERO(&write_fds);
+    for(int i = 0; i < n_processes; i++)
+    {
+        FD_SET(connections[i].fds[0], &read_fds);
+        FD_SET(connections[i].fds[1], &write_fds);
+    }
+
+    struct timeval timeout = { 0, 1000 };
+
+    // SELECT + READ AND SEND
 
     return EXIT_FAILURE;
 }

@@ -69,8 +69,8 @@
 struct Connection
 {
     int     fds[2];     // read and write fds
-    char*   buffer;
     int     bufsize;
+    char*   buffer;
 };
 
 // =====================================================
@@ -90,7 +90,7 @@ long GetPositiveValue(char const* str);
 /*
     Returns maximum from fds
  */
-int FindMaxFd(struct Connection** connections,
+int FindMaxFd(struct Connection* connections,
               int n_processes);
 
 #endif // COMMON_H_INCLUDED
