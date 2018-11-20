@@ -16,7 +16,7 @@ int PrepareBuffers(char** buffers,
         perror("calloc() buffer");
         return EXIT_FAILURE;
     }
-
+    
     errno = 0;
     *connections = 
     (struct Connection*)calloc(n_processes, sizeof(struct Connection));
@@ -26,7 +26,7 @@ int PrepareBuffers(char** buffers,
         free(buffers);
         return EXIT_FAILURE;
     }
-
+    
     return EXIT_SUCCESS;
 }
 

@@ -20,6 +20,13 @@ int ChildAction(int fds[2]);
 int ParentAction(struct Connection* connections,
                  int n_processes);
 
+/*
+    Reads and writes from buffers
+ */
+static int ProcessConnections(struct Connection* connections,
+            fd_set* read_fds, fd_set* write_fds,
+            int n_processes);
+
 // =====================================================
 
 int main(int argc, char const *argv[])
@@ -48,6 +55,11 @@ int main(int argc, char const *argv[])
     if (PrepareBuffers(&buffers, &connections, n_processes))
         return EXIT_FAILURE;
 
+/*
+    In main() every return hereinafter involves freeing
+    allocated resourses, so EXIT must be defined as following
+ */
+#define EXIT    exit_code = EXIT_FAILURE; goto QUIT;
 
     // Spawning children
     int exit_code = 0;
@@ -64,13 +76,13 @@ int main(int argc, char const *argv[])
         {
             CLOSE(parent_in_fds [0]);
             CLOSE(parent_out_fds[1]);
-            
+
             int child_fds[2] = 
             {
                 ( (!i)?   file_to_transfer : parent_out_fds[0] ),
                 parent_in_fds[1]
             };
-            
+
             exit_code = ChildAction(child_fds);
             goto QUIT;
         }
@@ -90,17 +102,28 @@ int main(int argc, char const *argv[])
         connections[i].fds[1] = parent_out_fds[1];
         connections[i].buffer = buffers + MAX_BUFSIZE * i;
         connections[i].bufsize = BUFSIZE(i);
+
+        if (!i)
+        {
+            CLOSE(connections[0].fds[1]);
+            connections[0].fds[1] = CLOSED;
+        }
     }
 
     exit_code = ParentAction(connections, n_processes);
-
+    
 QUIT:
-    free(connections);
     free(buffers);
+    free(connections);
+
     return exit_code;
+
+#undef EXIT
 }
 
 // =====================================================
+
+#define EXIT return EXIT_FAILURE;
 
 int ChildAction(int fds[2])
 {
@@ -137,19 +160,136 @@ int ParentAction(struct Connection* connections,
     int nfds = FindMaxFd(connections, n_processes) + 1;
 
     fd_set read_fds;
-    FD_ZERO(&read_fds);
     fd_set write_fds;
-    FD_ZERO(&write_fds);
-    for(int i = 0; i < n_processes; i++)
+    struct timeval timeout;
+
+    while(1)
     {
-        FD_SET(connections[i].fds[0], &read_fds);
-        FD_SET(connections[i].fds[1], &write_fds);
+        // Initing argumants for select
+        FD_ZERO(&read_fds);
+        FD_ZERO(&write_fds);
+        for(int i = 0; i < n_processes; i++)
+        {
+            if (connections[i].fds[0] != CLOSED)
+                FD_SET(connections[i].fds[0], &read_fds);
+            if (connections[i].fds[1] != CLOSED)
+                FD_SET(connections[i].fds[1], &write_fds);
+        }
+
+        timeout.tv_sec  = WAIT_TIME_SEC;
+        timeout.tv_usec = WAIT_TIME_USEC;
+
+
+        int ready = select(nfds, &read_fds, &write_fds, 
+                           NULL, &timeout);
+        if (ready < 0)
+        {
+            perror("select() failed");
+            return EXIT_FAILURE;
+        }
+
+        // Processing connections
+        int res = ProcessConnections(connections,
+                    &read_fds, &write_fds, n_processes);
+        if (res != 0)               return EXIT_FAILURE;
+
+        // Writing to stdout
+        struct Connection last = connections[n_processes - 1];
+        int bytes = write(STDOUT_FILENO, last.buffer + last.offset,
+                          last.left);
+        if (bytes < 0)              return EXIT_FAILURE;
+
+        last.left   -= bytes;
+        last.offset += bytes;
+        connections[n_processes - 1] = last;
+
+        struct Connection prev_last = connections[n_processes - 2];
+        if (prev_last.fds[0] == CLOSED && prev_last.left == 0)
+        {
+            close(last.fds[1]);
+            last.fds[1] = CLOSED;
+
+            return EXIT_SUCCESS;
+        }
+
     }
 
-    struct timeval timeout = { 0, 1000 };
-
-    // SELECT + READ AND SEND
-
-    return EXIT_FAILURE;
+    return EXIT_SUCCESS;
 }
+
+static int ProcessConnections(struct Connection* connections,
+            fd_set* read_fds, fd_set* write_fds,
+            int n_processes)
+{
+    if (!connections || !read_fds || !write_fds)    
+        return EXIT_FAILURE;
+
+    // Read
+    for(int i = 0; i < n_processes; i++)
+    {
+        struct Connection cur  = connections[i];
+
+        if (FD_ISSET(cur.fds[0], read_fds) &&
+                     cur.left == 0)
+        {
+            int bytes = read(cur.fds[0], cur.buffer, cur.bufsize);
+            if (bytes <  0)         return EXIT_FAILURE;
+            
+            // Whole file is read, connection can be closed 
+            if (bytes == 0)
+            {
+                CLOSE(cur.fds[0]);
+                cur.fds[0] = CLOSED;
+            }
+
+            cur.left   = bytes;
+            cur.offset = 0;
+        }
+
+        connections[i] = cur;
+    }
+
+    // Write
+    for(int i = 1; i < n_processes; i++)
+    {
+        struct Connection cur  = connections[i];
+        struct Connection prev = connections[i - 1];
+
+        if (FD_ISSET(cur.fds[1], write_fds))
+        {
+            int bytes = write(cur.fds[1], prev.buffer + prev.offset,
+                              prev.left);
+            if (bytes < 0)          return EXIT_FAILURE;
+
+            prev.left   -= bytes;
+            prev.offset += bytes;
+
+            // Whole file transmitted, connection can be closed
+            if (prev.fds[0] == CLOSED && prev.left == 0)
+            {
+                CLOSE(cur.fds[1]);
+                cur.fds[1] = CLOSED;
+            }
+        }
+
+        /* 
+            Instant check
+         */ 
+        if (!FD_ISSET(cur.fds[0], read_fds))
+        {
+            if (prev.fds[0] == CLOSED)
+            {
+                close(cur.fds[0]);
+                cur.fds[0] = CLOSED;
+            }
+        }
+
+        connections[i]     = cur;
+        connections[i - 1] = prev;
+    }
+
+    return EXIT_SUCCESS;
+}
+
+#undef EXIT
 

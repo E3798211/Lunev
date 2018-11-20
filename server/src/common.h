@@ -10,9 +10,14 @@
 
 // =====================================================
 
-#define BASE        10
-#define MAX_BUFSIZE 1024*128
-#define STD_BUFSIZE 1024*4
+#define BASE            10
+// #define MAX_BUFSIZE     1024*128
+#define MAX_BUFSIZE     10
+#define STD_BUFSIZE     1024*4
+#define WAIT_TIME_SEC   0
+#define WAIT_TIME_USEC  100000
+
+#define CLOSED          -1
 
 // =====================================================
 
@@ -30,7 +35,7 @@
 // =====================================================
 
 #define BUFSIZE( n )    \
-    MIN( 1024*POW(3, (n_processes - n)), 1024*128 )
+    MIN( 1024*POW(3, (n_processes - n)), MAX_BUFSIZE )
 
 // =====================================================
 /*
@@ -45,8 +50,7 @@
         if (pipe( (FDS) ) == -1)        \
         {                               \
             perror("pipe() failed");    \
-            exit_code = EXIT_FAILURE;   \
-            goto QUIT;                  \
+            EXIT                        \
         }                               \
     }                                   \
     while(0)
@@ -58,8 +62,7 @@
         if (close( (FD) ) == -1)        \
         {                               \
             perror("close() failed");   \
-            exit_code = EXIT_FAILURE;   \
-            goto QUIT;                  \
+            EXIT                        \
         }                               \
     }                                   \
     while(0)
@@ -69,8 +72,10 @@
 struct Connection
 {
     int     fds[2];     // read and write fds
-    int     bufsize;
     char*   buffer;
+    int     bufsize;
+    int     left;       // amount of bytes left in buffer 
+    int     offset;     // current offset in buffer
 };
 
 // =====================================================
