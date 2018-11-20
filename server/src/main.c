@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
 
 #include <sys/select.h>
 
@@ -12,7 +13,7 @@
 /*
     Performs child action.
  */
-int ChildAction(int fds[2]);
+int ChildAction(int fds[2], int num);
 
 /*
     Performs parent action.
@@ -55,6 +56,10 @@ int main(int argc, char const *argv[])
     if (PrepareBuffers(&buffers, &connections, n_processes))
         return EXIT_FAILURE;
 
+    struct sigaction sa = {};
+    sa.sa_handler = SIG_IGN;
+    sigaction(SIGCHLD, &sa, NULL);
+
 /*
     In main() every return hereinafter involves freeing
     allocated resourses, so EXIT must be defined as following
@@ -77,13 +82,19 @@ int main(int argc, char const *argv[])
             CLOSE(parent_in_fds [0]);
             CLOSE(parent_out_fds[1]);
 
+            for(int j = 0; j < i; j++)
+            {
+                close(connections[j].fds[0]);
+                close(connections[j].fds[1]);
+            }
+
             int child_fds[2] = 
             {
                 ( (!i)?   file_to_transfer : parent_out_fds[0] ),
                 parent_in_fds[1]
             };
 
-            exit_code = ChildAction(child_fds);
+            exit_code = ChildAction(child_fds, i);
             goto QUIT;
         }
         else
@@ -102,12 +113,6 @@ int main(int argc, char const *argv[])
         connections[i].fds[1] = parent_out_fds[1];
         connections[i].buffer = buffers + MAX_BUFSIZE * i;
         connections[i].bufsize = BUFSIZE(i);
-
-        if (!i)
-        {
-            CLOSE(connections[0].fds[1]);
-            connections[0].fds[1] = CLOSED;
-        }
     }
 
     exit_code = ParentAction(connections, n_processes);
@@ -125,7 +130,7 @@ QUIT:
 
 #define EXIT return EXIT_FAILURE;
 
-int ChildAction(int fds[2])
+int ChildAction(int fds[2], int num)
 {
     char buffer[STD_BUFSIZE] = {};
 
@@ -201,10 +206,7 @@ int ParentAction(struct Connection* connections,
 
         last.left   -= bytes;
         last.offset += bytes;
-        connections[n_processes - 1] = last;
-
-        struct Connection prev_last = connections[n_processes - 2];
-        if (prev_last.fds[0] == CLOSED && prev_last.left == 0)
+        if (last.fds[0] == CLOSED && last.left == 0)
         {
             close(last.fds[1]);
             last.fds[1] = CLOSED;
@@ -212,6 +214,7 @@ int ParentAction(struct Connection* connections,
             return EXIT_SUCCESS;
         }
 
+        connections[n_processes - 1] = last;
     }
 
     return EXIT_SUCCESS;
@@ -269,18 +272,6 @@ static int ProcessConnections(struct Connection* connections,
             {
                 CLOSE(cur.fds[1]);
                 cur.fds[1] = CLOSED;
-            }
-        }
-
-        /* 
-            Instant check
-         */ 
-        if (!FD_ISSET(cur.fds[0], read_fds))
-        {
-            if (prev.fds[0] == CLOSED)
-            {
-                close(cur.fds[0]);
-                cur.fds[0] = CLOSED;
             }
         }
 
