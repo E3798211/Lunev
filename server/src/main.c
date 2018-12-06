@@ -1,10 +1,14 @@
 
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <sys/ioctl.h>
+#include <limits.h>
 
 #include <sys/select.h>
 
@@ -82,12 +86,16 @@ int main(int argc, char const *argv[])
             CLOSE(parent_in_fds [0]);
             CLOSE(parent_out_fds[1]);
 
+            /*
+                Closing unnecessary connections: children shouldn't
+                keep each other's file descriptors opened.
+             */
             for(int j = 0; j < i; j++)
             {
-                close(connections[j].fds[0]);
-                close(connections[j].fds[1]);
+                CLOSE(connections[j].fds[0]);
+                CLOSE(connections[j].fds[1]);
             }
-
+ 
             int child_fds[2] = 
             {
                 ( (!i)?   file_to_transfer : parent_out_fds[0] ),
@@ -137,7 +145,6 @@ int ChildAction(int fds[2], int num)
     int bytes_read = 0;
     while( (bytes_read = read(fds[0], buffer, STD_BUFSIZE)) > 0 )
     {
-        // Sending all the data that has been read
         int bytes_written = 0;
         while(bytes_written < bytes_read)
         {
@@ -168,9 +175,30 @@ int ParentAction(struct Connection* connections,
     fd_set write_fds;
     struct timeval timeout;
 
+    close(connections[0].fds[1]);
+    connections[0].fds[1] = CLOSED;
+
+    errno = 0;
+    for(int i = 1; i < n_processes; i++)
+    {
+        int flag = 0;
+        flag = fcntl(connections[i].fds[0], F_GETFL);
+        if (fcntl(connections[i].fds[0], F_SETFL, O_NONBLOCK) == -1)
+        {
+            perror("fcntl() failed");
+            return EXIT_FAILURE;
+        }
+        flag = fcntl(connections[i].fds[1], F_GETFL);
+        if (fcntl(connections[i].fds[1], F_SETFL, O_NONBLOCK) == -1)
+        {
+            perror("fcntl() failed");
+            return EXIT_FAILURE;
+        }
+    }
+
     while(1)
     {
-        // Initing argumants for select
+        // Initing arguments for select
         FD_ZERO(&read_fds);
         FD_ZERO(&write_fds);
         for(int i = 0; i < n_processes; i++)
@@ -184,7 +212,6 @@ int ParentAction(struct Connection* connections,
         timeout.tv_sec  = WAIT_TIME_SEC;
         timeout.tv_usec = WAIT_TIME_USEC;
 
-
         int ready = select(nfds, &read_fds, &write_fds, 
                            NULL, &timeout);
         if (ready < 0)
@@ -193,19 +220,23 @@ int ParentAction(struct Connection* connections,
             return EXIT_FAILURE;
         }
 
-        // Processing connections
         int res = ProcessConnections(connections,
                     &read_fds, &write_fds, n_processes);
         if (res != 0)               return EXIT_FAILURE;
 
         // Writing to stdout
         struct Connection last = connections[n_processes - 1];
-        int bytes = write(STDOUT_FILENO, last.buffer + last.offset,
-                          last.left);
-        if (bytes < 0)              return EXIT_FAILURE;
+        
+        while(last.left > 0)
+        {
+            int bytes = write(STDOUT_FILENO, last.buffer + last.offset,
+                              last.left);
+            if (bytes < 0)              return EXIT_FAILURE;
 
-        last.left   -= bytes;
-        last.offset += bytes;
+            last.left   -= bytes;
+            last.offset += bytes;
+        }
+
         if (last.fds[0] == CLOSED && last.left == 0)
         {
             close(last.fds[1]);
@@ -227,16 +258,23 @@ static int ProcessConnections(struct Connection* connections,
     if (!connections || !read_fds || !write_fds)    
         return EXIT_FAILURE;
 
+
     // Read
     for(int i = 0; i < n_processes; i++)
     {
         struct Connection cur  = connections[i];
 
-        if (FD_ISSET(cur.fds[0], read_fds) &&
+        if (cur.fds[0] != CLOSED &&
+            FD_ISSET(cur.fds[0], read_fds) &&
                      cur.left == 0)
         {
-            int bytes = read(cur.fds[0], cur.buffer, cur.bufsize);
-            if (bytes <  0)         return EXIT_FAILURE;
+            errno = 0;
+            ssize_t bytes = read(cur.fds[0], cur.buffer, cur.bufsize);
+            if (bytes <  0)
+            {
+                perror("read() failed");
+                return EXIT_FAILURE;
+            }
             
             // Whole file is read, connection can be closed 
             if (bytes == 0)
@@ -258,12 +296,18 @@ static int ProcessConnections(struct Connection* connections,
         struct Connection cur  = connections[i];
         struct Connection prev = connections[i - 1];
 
-        if (FD_ISSET(cur.fds[1], write_fds))
+        if (cur.fds[1] != CLOSED &&
+            FD_ISSET(cur.fds[1], write_fds))
         {
+            errno = 0;
             int bytes = write(cur.fds[1], prev.buffer + prev.offset,
                               prev.left);
-            if (bytes < 0)          return EXIT_FAILURE;
-
+            if (bytes < 0)
+            {
+                perror("write() failed");
+                return EXIT_FAILURE;
+            }
+            
             prev.left   -= bytes;
             prev.offset += bytes;
 

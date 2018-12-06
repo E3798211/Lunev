@@ -73,5 +73,3 @@ int FindMaxFd(struct Connection* connections,
 
     return max;
 }
-
-

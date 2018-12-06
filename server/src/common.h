@@ -12,8 +12,8 @@
 
 #define BASE            10
 // #define MAX_BUFSIZE     1024*128
-#define MAX_BUFSIZE     10
-#define STD_BUFSIZE     1024*4
+#define MAX_BUFSIZE     1024*128
+#define STD_BUFSIZE     1024
 #define WAIT_TIME_SEC   0
 #define WAIT_TIME_USEC  100000
 
@@ -26,8 +26,11 @@
 
 #define POW( x , y )                    \
     ({                                  \
+        int pow = (y);                  \
+        if ((y) > 5)                    \
+            pow = 5;                    \
         int res = (x);                  \
-        for(int i = 1; i < (y); i++)    \
+        for(int i = 1; i < pow; i++)    \
             res *= (x);                 \
         res;                            \
     })
